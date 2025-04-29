@@ -21,7 +21,6 @@ jobs:
 
       - name: Publish to PyPI with uv
         run: |
-          cd uv_practice
           uvx --from=toml-cli toml set --toml-path=pyproject.toml
           uv build
           uv publish dist/*.whl
