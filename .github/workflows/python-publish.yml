@@ -21,9 +21,10 @@ jobs:
 
       - name: Publish to PyPI with uv
         # uvx --from=toml-cli toml set --toml-path=pyproject.toml project.version $CI_COMMIT_TAG
+        # uv publish dist/*.whl
         run: |
           uv build
-          uv publish dist/*.whl
+          uv publish --repository pypi --strict
   
         
 
