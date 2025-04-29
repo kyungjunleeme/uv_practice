@@ -1,0 +1,25 @@
+name: Publish to PyPI using uv
+
+on:
+  release:
+    types: [published]
+
+permissions:
+  contents: read
+  id-token: write  # PyPI trusted publishing requires this
+
+jobs:
+  uv-publish:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Install uv
+        run: pipx install uv
+
+      - name: Publish to PyPI with uv
+        run: |
+          uv publish --repository pypi --strict
+  
