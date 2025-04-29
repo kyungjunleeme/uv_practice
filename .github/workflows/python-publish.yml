@@ -20,8 +20,10 @@ jobs:
         run: pipx install uv
 
       - name: Publish to PyPI with uv
+        # uvx --from=toml-cli toml set --toml-path=pyproject.toml project.version $CI_COMMIT_TAG
         run: |
-          uvx --from=toml-cli toml set --toml-path=pyproject.toml
           uv build
           uv publish dist/*.whl
   
+        
+
