@@ -21,5 +21,6 @@ jobs:
 
       - name: Publish to PyPI with uv
         run: |
+          cd my_project
           uv publish
   
