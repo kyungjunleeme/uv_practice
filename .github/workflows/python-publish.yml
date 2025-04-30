@@ -40,8 +40,9 @@ on:
       - '*'  # 모든 태그 push 시 작동
 
 permissions:
-  contents: read
+  contents: read  # 역할 뭐지?
   id-token: write
+  attestations: write
 
 jobs:
   uv-publish:
@@ -54,8 +55,15 @@ jobs:
       - name: Install uv
         uses: astral-sh/setup-uv@v5
 
-      - name: Publish to PyPI with uv
+      - name: build pkg
         run: |
           uv build
-          uv publish
 
+      - name: Generate artifact attestation
+        uses: actions/attest-build-provenance@v2
+        with:
+          subject-path: "dist/*"
+
+      - name: Publish to PyPI with uv
+        run: |
+          uv publish
