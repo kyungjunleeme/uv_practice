@@ -93,26 +93,26 @@ jobs:
   create-release:
     # Upload the sdist, wheels, and provenance to a GitHub release. They remain
     # available as build artifacts for a while as well.
-    runs-on: ubuntu-latest
+    uses: slsa-framework/slsa-github-generator/.github/workflows/generator_generic_slsa3.yml@v2.1.0
+    with:
+      base64-subjects: ${{ needs.build.outputs.hash }}
     permissions:
       contents: write
+      id-token: write
+
+  publish-release:
+    needs: create-release
+    runs-on: ubuntu-latest
     steps:
-        # Can't pin with hash due to how this workflow works.
-      - uses: slsa-framework/slsa-github-generator/.github/workflows/generator_generic_slsa3.yml@v2.1.0
-        with:
-          base64-subjects: ${{ needs.build.outputs.hash }}
+      - uses: actions/checkout@v4
 
-      - uses: actions/download-artifact@95815c38cf2ff2164869cbab79da8d1f422bc89e # v4.2.1
-      - name: create release
-        run: >
-          gh release create --draft --repo ${{ github.repository }}
-          ${{ github.ref_name }}
-          *.intoto.jsonl/* artifact/*
+      - name: Create GitHub Release
+        run: |
+          gh release create --draft --repo ${{ github.repository }} \
+            ${{ github.ref_name }} dist/*
         env:
-          GH_TOKEN: ${{ github.token }}
-
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Publish to PyPI with uv
         run: |
           uv publish
-        
