@@ -47,7 +47,7 @@ permissions:
 
 
 jobs:
-  uv-publish:
+  uv-build-cosign:
     runs-on: ubuntu-latest
 
     steps:
@@ -93,6 +93,7 @@ jobs:
           subject-path: "dist/*"
 
   create-release:
+    needs: [uv-build-cosign]
     # Upload the sdist, wheels, and provenance to a GitHub release. They remain
     # available as build artifacts for a while as well.
     uses: slsa-framework/slsa-github-generator/.github/workflows/generator_generic_slsa3.yml@v2.1.0
@@ -105,7 +106,7 @@ jobs:
 
 
   publish-release:
-    needs: create-release
+    needs: [create-release]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
