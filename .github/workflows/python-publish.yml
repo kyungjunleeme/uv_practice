@@ -59,6 +59,11 @@ jobs:
         run: |
           uv build
 
+      # Generate hashes used for provenance.
+      - name: generate hash
+        id: hash
+        run: cd dist && echo "hash=$(sha256sum * | base64 -w0)" >> $GITHUB_OUTPUT
+
 #      - name: Generate artifact attestation
 #        uses: actions/attest-build-provenance@v2
 #        with:
@@ -70,6 +75,7 @@ jobs:
 #        with:
 #          name: python-package-distributions
 #          path: dist/
+
 
       - name: Sign the dists with Sigstore
         uses: sigstore/gh-action-sigstore-python@v3.0.0
@@ -91,6 +97,11 @@ jobs:
     permissions:
       contents: write
     steps:
+        # Can't pin with hash due to how this workflow works.
+      - uses: slsa-framework/slsa-github-generator/.github/workflows/generator_generic_slsa3.yml@v2.1.0
+        with:
+          base64-subjects: ${{ needs.build.outputs.hash }}
+
       - uses: actions/download-artifact@95815c38cf2ff2164869cbab79da8d1f422bc89e # v4.2.1
       - name: create release
         run: >
