@@ -59,11 +59,17 @@ jobs:
         run: |
           uv build
 
-      - name: Generate artifact attestation
-        uses: actions/attest-build-provenance@v2
+#      - name: Generate artifact attestation
+#        uses: actions/attest-build-provenance@v2
+#        with:
+#          subject-path: "dist/*"
+
+      - uses: sigstore/gh-action-sigstore-python@v3.0.0
         with:
-          subject-path: "dist/*"
+#          inputs: file.txt
+          release-signing-artifacts: true
 
       - name: Publish to PyPI with uv
         run: |
           uv publish
+        
