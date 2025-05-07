@@ -6,11 +6,10 @@ on:
       - '*'  # 모든 태그 push 시 작동
 
 permissions:
-  contents: write  # 역할 뭐지?
-  id-token: write
-  attestations: write
-  actions: read  # ✅ 요 줄 추가
-
+  id-token: write     # ✅ PyPI OIDC 인증용
+  contents: write     # ✅ GitHub Release 작성용
+  attestations: write # ✅ provenance 업로드
+  actions: read       # ✅ slsa-generator에 필요
 
 jobs:
   oidc_debug_test:
@@ -22,7 +21,7 @@ jobs:
         with:
           audience: '${{ github.server_url }}/${{ github.repository_owner }}'
 
-  uv-build-cosign:
+  uv-build-cosign-publish:
     runs-on: ubuntu-latest
 
     outputs:
@@ -39,6 +38,8 @@ jobs:
       - name: build pkg
         run: |
           uv build
+        env:
+          UV_CACHE_DIR: ${{ runner.temp }}/setup-uv-cache
 
       - name: generate hash
         id: hash
@@ -46,41 +47,52 @@ jobs:
           FILE=$(ls dist/*.whl)
           HASH=$(sha256sum "$FILE" | cut -d' ' -f1 | base64 -w0)
           echo "hash=$HASH" >> "$GITHUB_OUTPUT"
-        env:
-          UV_CACHE_DIR: ${{ runner.temp }}/setup-uv-cache
 
       - name: Hash artifacts
         id: encode
         run: |
           sha256sum dist/* > subjects.txt
           echo "subjects=$(base64 -w 0 subjects.txt)" >> "$GITHUB_OUTPUT"
-      
 
       - name: Debug Outputs
         run: |
           echo "Hash output: ${{ steps.hash.outputs.hash }}"
           echo "base64_subjects: ${{ steps.encode.outputs.subjects }}"
 
-  provenance:
-    needs: [uv-build-cosign]
-    permissions:
-      actions: read
-      id-token: write
-      contents: write
-    # Can't pin with hash due to how this workflow works.
-    uses: slsa-framework/slsa-github-generator/.github/workflows/generator_generic_slsa3.yml@v2.1.0
-    with:
-      base64-subjects: ${{ needs.uv-build-cosign.outputs.base64_subjects }}
-      provenance-name: provenance-${{ github.ref_name }}.intoto.jsonl
-      upload-assets: true
-      upload-tag-name: ${{ github.ref_name }}
-#      continue-on-error: true   # ✅ 이 줄 추가
 
+
+#  provenance:
+#    needs: [uv-build-cosign]
+#    permissions:
+#      actions: read
+#      id-token: write
+#      contents: write
+      - name: provenance
+        # Can't pin with hash due to how this workflow works.
+        uses: slsa-framework/slsa-github-generator/.github/workflows/generator_generic_slsa3.yml@v2.1.0
+        with:
+          base64-subjects: ${{ needs.uv-build-cosign.outputs.base64_subjects }}
+          provenance-name: provenance-${{ github.ref_name }}.intoto.jsonl
+          upload-assets: true
+          upload-tag-name: ${{ github.ref_name }}
+    #      continue-on-error: true   # ✅ 이 줄 추가
+
+      - name: Download artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: python-package-distributions
+          path: dist/
+
+      #
+      - name: Publish to PyPI
+        run: uv publish
+        env:
+          UV_CACHE_DIR: ${{ runner.temp }}/setup-uv-cache
 
   create-release:
     # Upload the sdist, wheels, and provenance to a GitHub release. They remain
     # available as build artifacts for a while as well.
-    needs: [provenance]
+    needs: [uv-build-cosign-publish]
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -90,20 +102,9 @@ jobs:
           path: ./dist
       - name: Create GitHub Release
         run: |
-          ls -lh  # 🔍 디버깅용: 실제 다운로드된 파일들 확인
+          ls -lh dist # 🔍 디버깅용: 실제 다운로드된 파일들 확인
           gh release create --draft --repo ${{ github.repository }} \
             ${{ github.ref_name }} \
             dist/*.intoto.jsonl/*.intoto.jsonl
-
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Install uv
-        uses: astral-sh/setup-uv@v5
-
-      - name: Publish to PyPI with uv
-        run: |
-          uv publish
