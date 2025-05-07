@@ -70,10 +70,21 @@ jobs:
         with:
           subject-path: "dist/*"
 
+  provenance:
+    needs: [uv-build-cosign]
+    permissions:
+      actions: read
+      id-token: write
+      contents: write
+    # Can't pin with hash due to how this workflow works.
+    uses: slsa-framework/slsa-github-generator/.github/workflows/generator_generic_slsa3.yml@v2.1.0
+    with:
+      base64-subjects: ${{ needs.build.outputs.hash }}
+
   create-release:
     # Upload the sdist, wheels, and provenance to a GitHub release. They remain
     # available as build artifacts for a while as well.
-    needs: [uv-build-cosign]
+    needs: [provenance]
     runs-on: ubuntu-latest
     permissions:
       contents: write
