@@ -87,8 +87,8 @@ jobs:
       - name: Debug Outputs
         run: |
           echo "Hash output: ${{ steps.hash.outputs.hash }}"
-          echo "SUCCESS: $SUCCESS"
-          echo "CONTINUE: $CONTINUE"
+#          echo "SUCCESS: $SUCCESS"
+#          echo "CONTINUE: $CONTINUE"
 
 #      - name: Sign the dists with Sigstore
 #        uses: sigstore/gh-action-sigstore-python@v3.0.0
@@ -115,6 +115,8 @@ jobs:
       upload-assets: true
       upload-tag-name: ${{ github.ref_name }}
       base64-subjects: ${{ needs.build.outputs.hash }}
+      continue-on-error: true   # ✅ 이 줄 추가
+
 
   create-release:
     # Upload the sdist, wheels, and provenance to a GitHub release. They remain
