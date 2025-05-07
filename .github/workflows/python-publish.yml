@@ -87,7 +87,6 @@ jobs:
     steps:
       - uses: actions/download-artifact@95815c38cf2ff2164869cbab79da8d1f422bc89e # v4.2.1
         with:
-          name: dist   # ← upload 시 default 이름은 디렉토리명(dist)임
           path: ./dist
       - name: create release
         run: >
