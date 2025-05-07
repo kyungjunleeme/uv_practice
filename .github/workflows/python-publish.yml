@@ -93,7 +93,7 @@ jobs:
           ls -lh  # 🔍 디버깅용: 실제 다운로드된 파일들 확인
           gh release create --draft --repo ${{ github.repository }} \
             ${{ github.ref_name }} \
-            dist/*.intoto.jsonl
+            dist/*.intoto.jsonl/*.intoto.jsonl
 
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
