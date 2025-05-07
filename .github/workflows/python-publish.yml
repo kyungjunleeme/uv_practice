@@ -115,7 +115,8 @@ jobs:
       upload-assets: true
       upload-tag-name: ${{ github.ref_name }}
       base64-subjects: ${{ needs.build.outputs.hash }}
-      continue-on-error: true   # ✅ 이 줄 추가
+      provenance-name: provenance-${{ github.ref_name }}.intoto.jsonl
+#      continue-on-error: true   # ✅ 이 줄 추가
 
 
   create-release:
