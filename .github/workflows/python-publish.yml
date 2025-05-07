@@ -95,7 +95,7 @@ jobs:
       - name: Debug Outputs
         run: |
           echo "Hash output: ${{ steps.hash.outputs.hash }}"
-          echo "base64_subjects: ${{ steps.hash.outputs.hash }}"
+          echo "base64_subjects: ${{ steps.hash.outputs.subjects }}"
 #          echo "SUCCESS: $SUCCESS"
 #          echo "CONTINUE: $CONTINUE"
 
@@ -121,7 +121,7 @@ jobs:
     # Can't pin with hash due to how this workflow works.
     uses: slsa-framework/slsa-github-generator/.github/workflows/generator_generic_slsa3.yml@v2.1.0
     with:
-      base64-subjects: ${{ needs.hash-artifacts.outputs.base64_subjects }}
+      base64-subjects: ${{ needs.uv-build-cosign.outputs.base64_subjects }}
       provenance-name: provenance-${{ github.ref_name }}.intoto.jsonl
       upload-assets: true
       upload-tag-name: ${{ github.ref_name }}
