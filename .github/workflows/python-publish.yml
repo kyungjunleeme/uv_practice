@@ -68,16 +68,25 @@ jobs:
         run: |
           uv build
 
+#      - name: generate hash
+#        id: hash
+#        run: |
+#          cd dist && echo "hash=$(sha256sum * | base64 -w0)" >> $GITHUB_OUTPUT
+#        env:
+#          UV_CACHE_DIR: ${{ runner.temp }}/setup-uv-cache
+
       - name: generate hash
         id: hash
         run: |
-          cd dist && echo "hash=$(sha256sum * | base64 -w0)" >> $GITHUB_OUTPUT
+          FILE=$(ls dist/*.whl)
+          HASH=$(sha256sum "$FILE" | cut -d' ' -f1 | base64 -w0)
+          echo "hash=$HASH" >> "$GITHUB_OUTPUT"
         env:
           UV_CACHE_DIR: ${{ runner.temp }}/setup-uv-cache
 
       - name: Debug Outputs
         run: |
-          echo "Hash output: ${{ needs.uv-build-cosign.outputs.hash }}"
+          echo "Hash output: ${{ steps.hash.outputs.hash }}"
           echo "SUCCESS: $SUCCESS"
           echo "CONTINUE: $CONTINUE"
 
