@@ -88,20 +88,6 @@ jobs:
       - uses: actions/download-artifact@95815c38cf2ff2164869cbab79da8d1f422bc89e # v4.2.1
         with:
           path: ./dist
-      - name: create release
-        run: >
-          gh release create --draft --repo ${{ github.repository }}
-          ${{ github.ref_name }}
-          *.intoto.jsonl/* dist/*
-        env:
-          GH_TOKEN: ${{ github.token }}
-
-  publish-release:
-    needs: [create-release]
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-
       - name: Create GitHub Release
         run: |
           ls -lh dist  # 🔍 디버깅용: 실제 다운로드된 파일들 확인
@@ -112,6 +98,20 @@ jobs:
             dist/*.tar.gz
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Publish to PyPI with uv
+        run: |
+          uv publish
+
+  publish-release:
+    needs: [create-release]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
 
       - name: Publish to PyPI with uv
         run: |
