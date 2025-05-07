@@ -56,7 +56,7 @@ jobs:
 
     outputs:
       hash: ${{ steps.hash.outputs.hash }}
-      base64_subjects: ${{ steps.encode.outputs.subjects }}
+      base64_subjects: ${{ steps.hash.outputs.subjects }}
 
     steps:
       - name: Checkout code
@@ -95,6 +95,7 @@ jobs:
       - name: Debug Outputs
         run: |
           echo "Hash output: ${{ steps.hash.outputs.hash }}"
+          echo "base64_subjects: ${{ steps.hash.outputs.hash }}"
 #          echo "SUCCESS: $SUCCESS"
 #          echo "CONTINUE: $CONTINUE"
 
