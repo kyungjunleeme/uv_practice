@@ -67,6 +67,7 @@ jobs:
     uses: slsa-framework/slsa-github-generator/.github/workflows/generator_generic_slsa3.yml@v2.1.0
     with:
       upload-assets: true
+      upload-tag-name: ${{ github.ref_name }}
       base64-subjects: ${{ needs.build.outputs.hash }}
 
   create-release:
