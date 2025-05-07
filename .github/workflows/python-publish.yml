@@ -22,35 +22,6 @@ jobs:
         with:
           audience: '${{ github.server_url }}/${{ github.repository_owner }}'
 
-#  uv-build-cosign:
-#    runs-on: ubuntu-latest
-#
-#    outputs:
-#      hash: ${{ steps.hash.outputs.hash }}
-#
-#    steps:
-#      - name: Checkout code
-#        uses: actions/checkout@v4
-#
-#      - name: Install uv
-#        uses: astral-sh/setup-uv@v5
-#
-#      - name: build pkg
-#        run: |
-#          uv build
-#
-#      - name: generate hash
-#        id: hash
-#        run: |
-#          cd dist && echo "hash=$(sha256sum * | base64 -w0)" >> $GITHUB_OUTPUT
-#
-#      # Generate hashes used for provenance.
-#      - name: generate hash
-#        run: cd dist && echo "hash=$(sha256sum * | base64 -w0)" >> $GITHUB_OUTPUT
-#      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
-#        with:
-#          path: ./dist
-
   uv-build-cosign:
     runs-on: ubuntu-latest
 
@@ -68,13 +39,6 @@ jobs:
       - name: build pkg
         run: |
           uv build
-
-#      - name: generate hash
-#        id: hash
-#        run: |
-#          cd dist && echo "hash=$(sha256sum * | base64 -w0)" >> $GITHUB_OUTPUT
-#        env:
-#          UV_CACHE_DIR: ${{ runner.temp }}/setup-uv-cache
 
       - name: generate hash
         id: hash
@@ -96,21 +60,6 @@ jobs:
         run: |
           echo "Hash output: ${{ steps.hash.outputs.hash }}"
           echo "base64_subjects: ${{ steps.encode.outputs.subjects }}"
-#          echo "SUCCESS: $SUCCESS"
-#          echo "CONTINUE: $CONTINUE"
-
-#      - name: Sign the dists with Sigstore
-#        uses: sigstore/gh-action-sigstore-python@v3.0.0
-#        with:
-#          inputs: >-
-#            ./dist/*.tar.gz
-#            ./dist/*.whl
-#          release-signing-artifacts: true
-#
-#      - name: Generate artifact attestation
-#        uses: actions/attest-build-provenance@v2
-#        with:
-#          subject-path: "dist/*"
 
   provenance:
     needs: [uv-build-cosign]
@@ -137,11 +86,14 @@ jobs:
       contents: write
     steps:
       - uses: actions/download-artifact@95815c38cf2ff2164869cbab79da8d1f422bc89e # v4.2.1
+        with:
+          name: dist   # ← upload 시 default 이름은 디렉토리명(dist)임
+          path: ./dist
       - name: create release
         run: >
           gh release create --draft --repo ${{ github.repository }}
           ${{ github.ref_name }}
-          *.intoto.jsonl/* artifact/*
+          *.intoto.jsonl/* dist/*
         env:
           GH_TOKEN: ${{ github.token }}
 
