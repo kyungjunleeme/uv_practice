@@ -30,15 +30,21 @@ jobs:
       base64_subjects: ${{ steps.encode.outputs.subjects }}
 
     steps:
-      - name: Checkout code
+      - name: "Checkout code"
         uses: actions/checkout@v4
 
-      - name: Install uv
+      - name: "Install uv"
         uses: astral-sh/setup-uv@v5
 
-      - name: build pkg
+      - name: "build pkg"
         run: |
           uv build
+
+      - name: "Upload dist"
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: dist
+          path: dist
 
       - name: generate hash
         id: hash
@@ -87,23 +93,31 @@ jobs:
     steps:
       - uses: actions/download-artifact@95815c38cf2ff2164869cbab79da8d1f422bc89e # v4.2.1
         with:
-          path: ./dist
+          path: ./provenance
       - name: Create GitHub Release
         run: |
-          ls -lh dist  # 🔍 디버깅용: 실제 다운로드된 파일들 확인
+          ls -lh provenance  # 🔍 디버깅용: 실제 다운로드된 파일들 확인
           gh release create --draft --repo ${{ github.repository }} \
             ${{ github.ref_name }} \
-            dist/*.intoto.jsonl/*.intoto.jsonl
-
+            provenance/*.intoto.jsonl/*.intoto.jsonl
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Checkout code
-        uses: actions/checkout@v4
-
+  pypi-publish-uv-build:
+    name: Upload uv-build to PyPI
+    runs-on: ubuntu-latest
+    environment:
+      name: release
+    permissions:
+      # For PyPI's trusted publishing.
+      id-token: write
+    steps:
       - name: Install uv
         uses: astral-sh/setup-uv@v5
-
-      - name: Publish to PyPI with uv
-        run: |
-          uv publish
+      - uses: actions/download-artifact@95815c38cf2ff2164869cbab79da8d1f422bc89e # v4.2.1
+        with:
+          name: dist
+          path: dist
+          merge-multiple: true
+      - name: Publish to PyPI
+        run: uv publish -v dist/*
