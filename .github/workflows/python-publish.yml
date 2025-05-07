@@ -40,13 +40,13 @@ jobs:
         run: |
           uv build
 
-      - name: "Upload dist"
+      - name: "Upload uv build dist"
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
           name: dist
           path: dist
 
-      - name: generate hash
+      - name: "generate hash"
         id: hash
         run: |
           FILE=$(ls dist/*.whl)
@@ -60,7 +60,6 @@ jobs:
         run: |
           sha256sum dist/* > subjects.txt
           echo "subjects=$(base64 -w 0 subjects.txt)" >> "$GITHUB_OUTPUT"
-      
 
       - name: Debug Outputs
         run: |
@@ -82,7 +81,6 @@ jobs:
       upload-tag-name: ${{ github.ref_name }}
 #      continue-on-error: true   # ✅ 이 줄 추가
 
-
   create-release:
     # Upload the sdist, wheels, and provenance to a GitHub release. They remain
     # available as build artifacts for a while as well.
@@ -93,6 +91,7 @@ jobs:
     steps:
       - uses: actions/download-artifact@95815c38cf2ff2164869cbab79da8d1f422bc89e # v4.2.1
         with:
+          name: provenance
           path: ./provenance
       - name: Create GitHub Release
         run: |
@@ -104,7 +103,8 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
   pypi-publish-uv-build:
-    name: Upload uv-build to PyPI
+    name: "Upload uv-build to PyPI"
+    needs: [ create-release ]
     runs-on: ubuntu-latest
     environment:
       name: release
@@ -117,7 +117,7 @@ jobs:
       - uses: actions/download-artifact@95815c38cf2ff2164869cbab79da8d1f422bc89e # v4.2.1
         with:
           name: dist
-          path: dist
-          merge-multiple: true
+          path: ./dist
+#          merge-multiple: true
       - name: Publish to PyPI
         run: uv publish -v dist/*
