@@ -98,14 +98,6 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Publish to PyPI with uv
-        run: |
-          uv publish
-
-  publish-release:
-    needs: [create-release]
-    runs-on: ubuntu-latest
-    steps:
       - name: Checkout code
         uses: actions/checkout@v4
 
