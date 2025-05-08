@@ -11,7 +11,6 @@ permissions:
   attestations: write # ✅ provenance 업로드
   actions: read       # ✅ slsa-generator에 필요
 
-
 jobs:
   oidc_debug_test:
     runs-on: ubuntu-latest
@@ -81,7 +80,7 @@ jobs:
       upload-tag-name: ${{ github.ref_name }}
 #      continue-on-error: true   # ✅ 이 줄 추가
 
-  create-release:
+  create-gh-release:
     # Upload the sdist, wheels, and provenance to a GitHub release. They remain
     # available as build artifacts for a while as well.
     needs: [provenance]
@@ -124,13 +123,16 @@ jobs:
 
   publish-pypi:
     name: "Upload uv-build to PyPI using pypa/gh-action-pypi-publish"
-    needs: [ create-release ]
+    needs: [ create-gh-release ]
     # Wait for approval before attempting to upload to PyPI. This allows reviewing the
     # files in the draft release.
 #    environment:
 #      name: publish
 #      url: https://pypi.org/project/uv-practice/${{ github.ref_name }}
     runs-on: ubuntu-latest
+    environment:
+      name: release
+      url: https://pypi.org/p/uv-practice  # Replace <package-name> with your PyPI project name
     permissions:
       id-token: write
     steps:
