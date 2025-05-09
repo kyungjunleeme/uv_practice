@@ -1,0 +1,145 @@
+name: Publish to PyPI using uv
+
+on:
+  push:
+    tags:
+      - '*'  # 모든 태그 push 시 작동
+
+permissions:
+  id-token: write     # ✅ PyPI OIDC 인증용
+  contents: write     # ✅ GitHub Release 작성용
+  attestations: write # ✅ provenance 업로드
+  actions: read       # ✅ slsa-generator에 필요
+
+jobs:
+  oidc_debug_test:
+    runs-on: ubuntu-latest
+    name: A test of the oidc debugger
+    steps:
+      - name: Debug OIDC Claims
+        uses: github/actions-oidc-debugger@main
+        with:
+          audience: '${{ github.server_url }}/${{ github.repository_owner }}'
+
+  uv-build-cosign:
+    runs-on: ubuntu-latest
+
+    outputs:
+      hash: ${{ steps.hash.outputs.hash }}
+      base64_subjects: ${{ steps.encode.outputs.subjects }}
+
+    steps:
+      - name: "Checkout code"
+        uses: actions/checkout@v4
+
+      - name: "Install uv"
+        uses: astral-sh/setup-uv@v5
+
+      - name: "build pkg"
+        run: |
+          uv build
+
+      - name: "Upload uv build dist"
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: dist
+          path: dist
+
+      - name: "generate hash"
+        id: hash
+        run: |
+          FILE=$(ls dist/*.whl)
+          HASH=$(sha256sum "$FILE" | cut -d' ' -f1 | base64 -w0)
+          echo "hash=$HASH" >> "$GITHUB_OUTPUT"
+        env:
+          UV_CACHE_DIR: ${{ runner.temp }}/setup-uv-cache
+
+      - name: Hash artifacts
+        id: encode
+        run: |
+          sha256sum dist/* > subjects.txt
+          echo "subjects=$(base64 -w 0 subjects.txt)" >> "$GITHUB_OUTPUT"
+
+      - name: Debug Outputs
+        run: |
+          echo "Hash output: ${{ steps.hash.outputs.hash }}"
+          echo "base64_subjects: ${{ steps.encode.outputs.subjects }}"
+
+  provenance:
+    needs: [uv-build-cosign]
+    permissions:
+      actions: read
+      id-token: write
+      contents: write
+    # Can't pin with hash due to how this workflow works.
+    uses: slsa-framework/slsa-github-generator/.github/workflows/generator_generic_slsa3.yml@v2.1.0
+    with:
+      base64-subjects: ${{ needs.uv-build-cosign.outputs.base64_subjects }}
+      provenance-name: provenance-${{ github.ref_name }}.intoto.jsonl
+      upload-assets: true
+      upload-tag-name: ${{ github.ref_name }}
+#      continue-on-error: true   # ✅ 이 줄 추가
+
+  create-gh-release:
+    # Upload the sdist, wheels, and provenance to a GitHub release. They remain
+    # available as build artifacts for a while as well.
+    needs: [provenance]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@95815c38cf2ff2164869cbab79da8d1f422bc89e # v4.2.1
+        with:
+          path: ./provenance
+      - name: Create GitHub Release
+        run: |
+          ls -lh provenance  # 🔍 디버깅용: 실제 다운로드된 파일들 확인
+          gh release create --draft --repo ${{ github.repository }} \
+            ${{ github.ref_name }} \
+            provenance/*.intoto.jsonl/*.intoto.jsonl
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+#  pypi-publish-uv-build:
+#    name: "Upload uv-build to PyPI using uv"
+#    needs: [ create-release ]
+#    runs-on: ubuntu-latest
+#    environment:
+#      name: release
+#    permissions:
+#      # For PyPI's trusted publishing.
+#      id-token: write
+#    steps:
+#      - name: Install uv
+#        uses: astral-sh/setup-uv@v5
+#      - uses: actions/download-artifact@95815c38cf2ff2164869cbab79da8d1f422bc89e # v4.2.1
+#        with:
+#          name: dist
+#          path: ./dist
+##          merge-multiple: true
+#      - name: Publish to PyPI
+#        run: uv publish -v dist/*
+
+
+  publish-pypi:
+    name: "Upload uv-build to PyPI using pypa/gh-action-pypi-publish"
+    needs: [ create-gh-release ]
+    # Wait for approval before attempting to upload to PyPI. This allows reviewing the
+    # files in the draft release.
+#    environment:
+#      name: publish
+#      url: https://pypi.org/project/uv-practice/${{ github.ref_name }}
+    runs-on: ubuntu-latest
+    environment:
+      name: release
+      url: https://pypi.org/p/uv-practice  # Replace <package-name> with your PyPI project name
+    permissions:
+      id-token: write
+    steps:
+      - uses: actions/download-artifact@95815c38cf2ff2164869cbab79da8d1f422bc89e # v4.2.1
+        with:
+          name: dist
+          path: ./dist
+      - uses: pypa/gh-action-pypi-publish@76f52bc884231f62b9a034ebfe128415bbaabdfc # v1.12.4
+        with:
+          packages-dir: dist/
