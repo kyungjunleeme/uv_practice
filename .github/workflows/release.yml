@@ -156,7 +156,7 @@ jobs:
         uses: astral-sh/setup-uv@v6
 
       - name: Install verifier
-        run: uv pip install pypi-attestations
+        run: uv pip install --system pypi-attestations
 
       - name: Run verification
         run: |
