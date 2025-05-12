@@ -161,7 +161,7 @@ jobs:
       - name: Activate venv and install verifier
         run: |
           source .venv/bin/activate
-          uv pip install pypi-attestations
+          uv pip install --prerelease=allow pypi-attestations
           which pypi-attestations
 
       - name: Run verification
